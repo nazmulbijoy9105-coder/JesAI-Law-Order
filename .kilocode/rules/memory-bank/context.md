@@ -85,3 +85,4 @@ export async function GET() {
 | Date | Changes |
 |------|---------|
 | Initial | Template created with base setup |
+| 2026-03-01 | Built JesAI — Bangladesh Legal Literacy AI Assistant. Full app with home, consult (chat), laws, and about pages. ChatInterface with IRAC reasoning engine, 20-question free tier, law area detection, consequence prediction. Bangladesh flag color theme (green/red/gold). |
