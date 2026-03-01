@@ -473,10 +473,7 @@ Remember: JesAI provides legal information and literacy — not legal advice. Fo
   };
 }
 
-const INITIAL_MESSAGE: Message = {
-  id: "welcome",
-  role: "ai",
-  content: `আস্সালামু আলাইকুম! Welcome to **JesAI** — Bangladesh's Legal Literacy Assistant. 🇧🇩
+const INITIAL_MESSAGE_CONTENT = `আস্সালামু আলাইকুম! Welcome to **JesAI** — Bangladesh's Legal Literacy Assistant. 🇧🇩
 
 I am your Mother Legal AI, trained on Bangladesh laws from **bdlaws.minlaw.gov.bd**. I can help you understand:
 
@@ -493,9 +490,7 @@ I am your Mother Legal AI, trained on Bangladesh laws from **bdlaws.minlaw.gov.b
 
 ---
 
-**What is your legal situation or question today?**`,
-  timestamp: new Date(),
-};
+**What is your legal situation or question today?**`;
 
 const QUICK_TOPICS = [
   "Land/property dispute",
@@ -508,8 +503,17 @@ const QUICK_TOPICS = [
   "Constitutional rights",
 ];
 
+function makeInitialMessage(): Message {
+  return {
+    id: "welcome",
+    role: "ai",
+    content: INITIAL_MESSAGE_CONTENT,
+    timestamp: new Date(0), // stable epoch timestamp — avoids SSR/client mismatch
+  };
+}
+
 export default function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
+  const [messages, setMessages] = useState<Message[]>(() => [makeInitialMessage()]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [questionCount, setQuestionCount] = useState(0);
@@ -684,6 +688,7 @@ export default function ChatInterface() {
                 <p>{message.content}</p>
               )}
               <div
+                suppressHydrationWarning
                 className={`text-[10px] mt-2 ${
                   message.role === "ai" ? "text-slate-600" : "text-green-200/60"
                 }`}
