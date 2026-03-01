@@ -2,7 +2,7 @@
 
 ## Current State
 
-**Template Status**: ✅ Ready for development — hydration mismatch fixed
+**Template Status**: ✅ Ready for development — bilingual + voice features added
 
 The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. It's ready for AI-assisted expansion to build any type of application.
 
@@ -15,6 +15,10 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Memory bank documentation
 - [x] Recipe system for common features
 - [x] Fixed SSR hydration mismatch in ChatInterface (stable initial timestamp + suppressHydrationWarning on locale time display)
+- [x] Added bilingual support (English / বাংলা) with full Bangla AI responses and UI translations
+- [x] Added voice input (speech-to-text via Web Speech API) with language-aware recognition (en-US / bn-BD)
+- [x] Added voice output (text-to-speech) button on each AI message with stop/play toggle
+- [x] Language toggle resets conversation and switches all UI text and AI responses
 
 ## Current Structure
 
