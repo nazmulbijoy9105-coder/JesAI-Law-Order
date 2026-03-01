@@ -13,8 +13,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Next.js Template",
-  description: "A minimal Next.js starter template",
+  title: "JesAI – Bangladesh Legal Literacy Assistant",
+  description:
+    "JesAI is your free Bangladesh legal literacy companion. Understand your rights, map laws to your situation, and navigate the legal system — from birth to death, land to sky.",
+  keywords: [
+    "Bangladesh law",
+    "legal literacy",
+    "bdminlaw",
+    "legal AI",
+    "Bangladesh legal help",
+    "JesAI",
+  ],
 };
 
 export default function RootLayout({
