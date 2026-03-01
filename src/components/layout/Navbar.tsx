@@ -105,7 +105,7 @@ export default function Navbar() {
               >
                 Free Consultation
                 <span className="text-xs bg-[#c8a84b] text-[#0a1628] px-1.5 py-0.5 rounded font-bold">
-                  20 FREE
+                  10 FREE
                 </span>
               </Link>
             </div>

@@ -19,6 +19,9 @@ The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. I
 - [x] Added voice input (speech-to-text via Web Speech API) with language-aware recognition (en-US / bn-BD)
 - [x] Added voice output (text-to-speech) button on each AI message with stop/play toggle
 - [x] Language toggle resets conversation and switches all UI text and AI responses
+- [x] Changed question limit from 20 to 10 (MAX_QUESTIONS constant)
+- [x] Increased typing delay to 2-4 seconds for realistic AI feel
+- [x] Updated Navbar to show "10 FREE" instead of "20 FREE"
 
 ## Current Structure
 

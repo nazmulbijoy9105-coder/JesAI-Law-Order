@@ -26,13 +26,16 @@ interface ConversationState {
   questionCount: number;
 }
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+const MAX_QUESTIONS = 10;
+
 // ─── UI Translations ────────────────────────────────────────────────────────
 const UI_TEXT = {
   en: {
     active: "JesAI is active",
     freeLeft: (n: number) => `${n} free questions left`,
     quickTopics: "Quick topics:",
-    limitTitle: "You've used all 20 free questions",
+    limitTitle: `You've used all ${MAX_QUESTIONS} free questions`,
     limitSub: "Subscribe for unlimited access with human legal assistance",
     subscribeBtn: "Subscribe Now",
     placeholder: "Describe your legal situation in plain language...",
@@ -1083,7 +1086,7 @@ export default function ChatInterface() {
   const sendMessage = async (text?: string) => {
     const messageText = text || input.trim();
     if (!messageText || isTyping) return;
-    if (questionCount >= 20) return;
+    if (questionCount >= MAX_QUESTIONS) return;
 
     const userMessage: Message = {
       id: (idCounterRef.current++).toString(),
@@ -1098,7 +1101,7 @@ export default function ChatInterface() {
     setQuestionCount((c) => c + 1);
 
     await new Promise((resolve) =>
-      setTimeout(resolve, 800 + Math.random() * 600)
+      setTimeout(resolve, 2000 + Math.random() * 2000)
     );
 
     const responder = lang === "en" ? jesAIRespondEN : jesAIRespondBN;
@@ -1149,7 +1152,7 @@ export default function ChatInterface() {
     });
   };
 
-  const freeRemaining = Math.max(0, 20 - questionCount);
+  const freeRemaining = Math.max(0, MAX_QUESTIONS - questionCount);
 
   return (
     <div className="flex flex-col h-full">
@@ -1308,7 +1311,7 @@ export default function ChatInterface() {
       )}
 
       {/* Limit reached */}
-      {questionCount >= 20 && (
+      {questionCount >= MAX_QUESTIONS && (
         <div className="mx-4 mb-3 p-3 rounded-xl bg-[#c8a84b]/10 border border-[#c8a84b]/30 text-center">
           <p className="text-sm text-[#c8a84b] font-semibold">{t.limitTitle}</p>
           <p className="text-xs text-slate-400 mt-1">{t.limitSub}</p>
@@ -1326,8 +1329,8 @@ export default function ChatInterface() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            disabled={isTyping || questionCount >= 20}
-            placeholder={questionCount >= 20 ? t.placeholderLimit : t.placeholder}
+            disabled={isTyping || questionCount >= MAX_QUESTIONS}
+            placeholder={questionCount >= MAX_QUESTIONS ? t.placeholderLimit : t.placeholder}
             rows={2}
             className="flex-1 resize-none rounded-xl border border-white/10 bg-[#0d2240] px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#006a4e]/60 focus:ring-1 focus:ring-[#006a4e]/30 disabled:opacity-50 disabled:cursor-not-allowed"
           />
@@ -1335,7 +1338,7 @@ export default function ChatInterface() {
           {/* Voice input button */}
           <button
             onClick={isListening ? stopListening : startListening}
-            disabled={isTyping || questionCount >= 20}
+            disabled={isTyping || questionCount >= MAX_QUESTIONS}
             title={isListening ? t.stopListenBtn : t.listenBtn}
             className={`flex-shrink-0 h-11 w-11 rounded-xl flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg ${
               isListening
@@ -1360,7 +1363,7 @@ export default function ChatInterface() {
           {/* Send button */}
           <button
             onClick={() => sendMessage()}
-            disabled={!input.trim() || isTyping || questionCount >= 20}
+            disabled={!input.trim() || isTyping || questionCount >= MAX_QUESTIONS}
             className="flex-shrink-0 h-11 w-11 rounded-xl bg-[#006a4e] flex items-center justify-center text-white hover:bg-[#005a40] transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg"
             aria-label="Send message"
           >
