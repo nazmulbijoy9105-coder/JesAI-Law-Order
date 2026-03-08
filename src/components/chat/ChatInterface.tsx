@@ -254,12 +254,13 @@ export default function ChatInterface() {
 
   const startListening = useCallback(() => {
     if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) return;
-    const SR = (window as Window & { webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition || window.SpeechRecognition;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
     const r = new SR();
     r.lang = lang === "bn" ? "bn-BD" : "en-BD";
     r.continuous = false;
     r.interimResults = false;
-    r.onresult = (e: SpeechRecognitionEvent) => { setInput(p => p + e.results[0][0].transcript); setIsListening(false); };
+    r.onresult = (e: any) => { setInput(p => p + e.results[0][0].transcript); setIsListening(false); };
     r.onerror = () => setIsListening(false);
     r.onend = () => setIsListening(false);
     recognitionRef.current = r;
