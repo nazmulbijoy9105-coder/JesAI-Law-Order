@@ -1,16 +1,11 @@
+import { LawArea, QAEntry, KnowledgeResult, KnowledgeModule } from "./types";
 import nrbModule from "./nrb";
 import propertyModule from "./property";
 import criminalModule from "./criminal";
 import taxModule from "./tax";
 import companyModule from "./company";
-// Future modules — uncomment as built:
-// import familyModule from "./family";
-// import labourModule from "./labour";
-// import constitutionalModule from "./constitutional";
-// import consumerModule from "./consumer";
-// import cyberModule from "./cyber";
 
-const MODULES = [
+const MODULES: KnowledgeModule[] = [
   nrbModule,
   propertyModule,
   criminalModule,
@@ -18,37 +13,24 @@ const MODULES = [
   companyModule,
 ];
 
+/**
+ * Detects the legal area from the user's message
+ */
 export function detectArea(message: string): LawArea | null {
   const msg = message.toLowerCase();
-
+  
   const areaKeywords: Record<LawArea, string[]> = {
-    nrb: ["nrb", "non-resident", "nonresident", "usa partner", "foreign partner",
-          "repatriate", "bida", "wht", "withholding", "dtaa", "fbar",
-          "overseas", "abroad", "dollar", "usd", "nrb business", "foreign investment"],
-    tax: ["tax", "vat", "nbr", "income tax", "return", "assessment", "challan", "tax return"],
-    company: ["company", "rjsc", "incorporation", "pvt ltd", "limited company",
-              "director", "shareholder", "memorandum", "articles", "corporate"],
-    criminal: ["arrest", "fir", "police", "crime", "bail", "accused",
-               "case filed", "charge", "sentence", "jail", "victim"],
-    property: ["land", "property", "deed", "mutation", "khatian", "plot",
-               "lease", "mortgage", "tenancy", "eviction", "registration",
-               "sub-registrar", "ac land", "namajaari", "title", "boundary",
-               "encroach", "inheritance", "heir", "partition", "flat", "apartment",
-               "cheque bounce", "cheque", "baynama", "rajuk", "rehab", "builder",
-               "loan default", "foreclosure", "artha rin", "khas", "char",
-               "erosion", "shafi", "preemption", "forged deed", "adverse possession",
-               "survey", "rs cs bs", "probate", "will", "succession"],
-    family: ["divorce", "marriage", "talaq", "custody", "maintenance",
-             "dower", "mehr", "separation", "spouse", "child support", "family court"],
-    labour: ["job", "employment", "salary", "fired", "termination", "labour",
-             "worker", "employee", "overtime", "gratuity", "provident fund", "resignation"],
-    contract: ["contract", "agreement", "breach", "payment", "refund",
-               "supplier", "buyer", "deal", "sign", "obligation", "default"],
-    constitutional: ["constitution", "rights", "fundamental", "writ",
-                     "high court", "supreme court", "article", "freedom", "liberty"],
-    administrative: ["government", "authority", "licence", "permit",
-                     "ministry", "department", "public servant", "official"],
-    evidence: ["evidence", "proof", "witness", "document", "admissible", "statement"],
+    nrb: ["nrb", "non-resident", "usa partner", "foreign partner", "repatriate", "bida", "overseas"],
+    tax: ["tax", "vat", "nbr", "income tax", "return", "assessment", "challan"],
+    company: ["company", "rjsc", "incorporation", "pvt ltd", "director", "shareholder"],
+    criminal: ["arrest", "fir", "police", "crime", "bail", "accused", "jail", "খুন", "হত্যা"],
+    property: ["land", "property", "deed", "mutation", "khatian", "plot", "দলিল", "খতিয়ান"],
+    family: ["divorce", "marriage", "talaq", "custody", "maintenance"],
+    labour: ["job", "employment", "salary", "termination", "worker"],
+    contract: ["contract", "agreement", "breach", "payment"],
+    constitutional: ["constitution", "rights", "writ", "high court"],
+    administrative: ["government", "licence", "permit"],
+    evidence: ["evidence", "proof", "witness"],
     general: [],
   };
 
@@ -57,10 +39,12 @@ export function detectArea(message: string): LawArea | null {
       return area as LawArea;
     }
   }
-
   return null;
 }
 
+/**
+ * Weighted Keyword Matcher
+ */
 function matchQA(message: string, area: LawArea | null): QAEntry | null {
   const msg = message.toLowerCase();
   const msgWords = msg.split(/\s+/);
@@ -68,8 +52,9 @@ function matchQA(message: string, area: LawArea | null): QAEntry | null {
   let bestScore = 0;
 
   for (const module of MODULES) {
-    const entries = area
-      ? module.qaBank.filter((e) => e.area === area || e.area === "general")
+    // Search specific area first if detected, otherwise search all
+    const entries = area 
+      ? module.qaBank.filter(e => e.area === area || e.area === "general")
       : module.qaBank;
 
     for (const entry of entries) {
@@ -77,17 +62,11 @@ function matchQA(message: string, area: LawArea | null): QAEntry | null {
       for (const kw of entry.triggerKeywords) {
         const kwLower = kw.toLowerCase();
         if (msg.includes(kwLower)) {
-          // Exact phrase match — highest weight
-          score += 3;
+          score += 3; // Direct phrase match
         } else {
-          // Word-level match
           const kwWords = kwLower.split(/\s+/);
-          const wordMatches = kwWords.filter((w: string) => msgWords.includes(w)).length;
-          if (wordMatches === kwWords.length) {
-            score += 2;
-          } else {
-            score += wordMatches;
-          }
+          const wordMatches = kwWords.filter(w => msgWords.includes(w)).length;
+          score += (wordMatches === kwWords.length) ? 2 : wordMatches;
         }
       }
       if (score > bestScore) {
@@ -97,7 +76,6 @@ function matchQA(message: string, area: LawArea | null): QAEntry | null {
     }
   }
 
-  // Minimum score 2 to avoid false matches
   return bestScore >= 2 ? bestMatch : null;
 }
 
@@ -128,32 +106,19 @@ export function queryKnowledge(message: string): KnowledgeResult {
   };
 }
 
-export function getActiveAreas(): { area: LawArea; label: string; description: string }[] {
-  return MODULES.map((m) => ({
-    area: m.area,
-    label: m.label,
-    description: m.description,
-  }));
-}
-
 export function formatIRACResponse(result: KnowledgeResult): string {
   if (!result.qaEntry) return "";
   const { irac, escalate, escalateReason } = result.qaEntry;
+  const isBangla = /[\u0980-\u09FF]/.test(irac.issue);
 
-  let response = `${irac.issue}\n\n`;
-  response += `**What the law says**\n${irac.rule}\n\n`;
-  response += `**How this applies**\n${irac.application}\n\n`;
-  response += `**What you should do**\n${irac.conclusion}`;
+  let response = `### ${isBangla ? "আইনী বিশ্লেষণ" : "Legal Analysis"}\n`;
+  response += `**${isBangla ? "ঘটনা:" : "Situation:"}** ${irac.issue}\n\n`;
+  response += `**${isBangla ? "আইন যা বলে:" : "What the Law Says:"}**\n${irac.rule}\n\n`;
+  response += `**${isBangla ? "প্রয়োগ:" : "How it Applies:"}** ${irac.application}\n\n`;
+  response += `**${isBangla ? "করণীয়:" : "Guidance:"}** ${irac.conclusion}`;
 
   if (escalate && escalateReason) {
-    response += `\n\n⚠️ **Professional Help Required**\n${escalateReason}`;
-  }
-
-  if (result.rules.length > 0) {
-    response += `\n\n**Applicable Laws**\n`;
-    result.rules.slice(0, 3).forEach((r) => {
-      response += `• ${r.title} — ${r.source}\n`;
-    });
+    response += `\n\n⚠️ **${isBangla ? "পেশাদার সহায়তা প্রয়োজন" : "Professional Help Required"}**\n${escalateReason}`;
   }
 
   return response;
