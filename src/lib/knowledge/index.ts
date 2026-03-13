@@ -1,22 +1,21 @@
-// ─── JesAI Knowledge Store — Master Router ───────────────────
-// NLC validates all modules. Add new modules here as built.
-
-import type { KnowledgeResult, LawArea, QAEntry } from "./types";
 import nrbModule from "./nrb";
 import propertyModule from "./property";
 import criminalModule from "./criminal";
+import taxModule from "./tax";
+import companyModule from "./company";
 // Future modules — uncomment as built:
-// import taxModule from "./tax";
-// import companyModule from "./company";
 // import familyModule from "./family";
 // import labourModule from "./labour";
-// import contractModule from "./contract";
 // import constitutionalModule from "./constitutional";
+// import consumerModule from "./consumer";
+// import cyberModule from "./cyber";
 
 const MODULES = [
   nrbModule,
   propertyModule,
   criminalModule,
+  taxModule,
+  companyModule,
 ];
 
 export function detectArea(message: string): LawArea | null {
