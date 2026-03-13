@@ -1,6 +1,13 @@
 // ─── JesAI API Route — Bilingual, All Civil & Criminal ───────
 import { NextRequest, NextResponse } from "next/server";
 import { queryKnowledge } from "@/lib/knowledge";
+import {
+  matchScenario,
+  nextStep,
+  isNextStepCommand,
+  isPrevStepCommand,
+  type ScenarioSession,
+} from "@/lib/knowledge/scenario-manager";
 
 function detectLanguage(text: string): "bn" | "en" {
   return /[\u0980-\u09FF]/.test(text) ? "bn" : "en";
@@ -378,6 +385,18 @@ Constitutional Rights • Consumer Rights • Cyber/Digital
 ⚠️ শুধুমাত্র আইনি তথ্য — পরামর্শ নয়।`,
 };
 
+// ─── In-memory scenario session store ────────────────────────
+// Keyed by a lightweight session fingerprint.
+// For multi-user production: replace with Redis or cookie session.
+const scenarioSessions = new Map<string, ScenarioSession>();
+
+function getSessionId(req: NextRequest): string {
+  const ip = req.headers.get("x-forwarded-for") ?? "anon";
+  const ua = (req.headers.get("user-agent") ?? "").slice(0, 40);
+  return `${ip}::${ua}`;
+}
+
+// ─── Main Handler ─────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
     const { message } = await req.json();
@@ -387,8 +406,71 @@ export async function POST(req: NextRequest) {
 
     const lang = detectLanguage(message);
     const area = detectArea(message);
+    const sessionId = getSessionId(req);
+    const activeSession = scenarioSessions.get(sessionId);
 
-    // Step 1: NLC knowledge store (specific Q&A)
+    // ── Step 0: Active scenario navigation ("next" / "back") ──────
+    if (activeSession) {
+      if (isNextStepCommand(message)) {
+        const result = nextStep(activeSession.scenarioId, activeSession.currentStepIndex);
+        if (result.matched) {
+          if (result.isComplete) {
+            scenarioSessions.delete(sessionId);
+          } else {
+            scenarioSessions.set(sessionId, {
+              scenarioId: result.scenario.scenarioId,
+              currentStepIndex: result.stepNumber - 1,
+            });
+          }
+          return NextResponse.json({
+            response: result.summary,
+            metadata: {
+              area: result.scenario.area,
+              confidence: "high",
+              escalate: result.scenario.escalate,
+              language: lang,
+              scenario: {
+                scenarioId: result.scenario.scenarioId,
+                stepNumber: result.stepNumber,
+                totalSteps: result.totalSteps,
+                progressPercent: result.progressPercent,
+                isComplete: result.isComplete,
+              },
+            },
+          });
+        }
+      }
+
+      if (isPrevStepCommand(message)) {
+        // Go back one step: currentStepIndex - 1 is target, pass - 2 into nextStep (which adds 1)
+        const targetIndex = Math.max(0, activeSession.currentStepIndex - 1);
+        const result = nextStep(activeSession.scenarioId, targetIndex - 1 >= 0 ? targetIndex - 1 : 0);
+        if (result.matched) {
+          scenarioSessions.set(sessionId, {
+            scenarioId: result.scenario.scenarioId,
+            currentStepIndex: result.stepNumber - 1,
+          });
+          return NextResponse.json({
+            response: result.summary,
+            metadata: {
+              area: result.scenario.area,
+              confidence: "high",
+              escalate: result.scenario.escalate,
+              language: lang,
+              scenario: {
+                scenarioId: result.scenario.scenarioId,
+                stepNumber: result.stepNumber,
+                totalSteps: result.totalSteps,
+                progressPercent: result.progressPercent,
+                isComplete: result.isComplete,
+              },
+            },
+          });
+        }
+      }
+    }
+
+    // ── Step 1: NLC knowledge store (specific Q&A) ─────────────────
     const result = queryKnowledge(message);
     if (result.matched && result.qaEntry) {
       const { irac, escalate, escalateReason } = result.qaEntry;
@@ -403,19 +485,61 @@ export async function POST(req: NextRequest) {
         response += `\n\n**${lang === "bn" ? "প্রযোজ্য আইন" : "Applicable Laws"}**\n`;
         result.rules.slice(0, 3).forEach(r => { response += `• ${r.title} — ${r.source}\n`; });
       }
-      return NextResponse.json({ response, metadata: { area: result.area, confidence: result.confidence, escalate: result.escalate, language: lang } });
+      return NextResponse.json({
+        response,
+        metadata: {
+          area: result.area,
+          confidence: result.confidence,
+          escalate: result.escalate,
+          language: lang,
+        },
+      });
     }
 
-    // Step 2: General area response
+    // ── Step 2: Scenario match (step-by-step process guide) ────────
+    const scenarioResult = matchScenario(message, activeSession);
+    if (scenarioResult.matched) {
+      scenarioSessions.set(sessionId, {
+        scenarioId: scenarioResult.scenario.scenarioId,
+        currentStepIndex: scenarioResult.stepNumber - 1,
+      });
+      return NextResponse.json({
+        response: scenarioResult.summary,
+        metadata: {
+          area: scenarioResult.scenario.area,
+          confidence: "high",
+          escalate: scenarioResult.scenario.escalate,
+          language: lang,
+          scenario: {
+            scenarioId: scenarioResult.scenario.scenarioId,
+            stepNumber: scenarioResult.stepNumber,
+            totalSteps: scenarioResult.totalSteps,
+            progressPercent: scenarioResult.progressPercent,
+            isComplete: scenarioResult.isComplete,
+          },
+        },
+      });
+    }
+
+    // ── Step 3: General area response ──────────────────────────────
     if (area && R[lang]?.[area]) {
-      return NextResponse.json({ response: R[lang][area], metadata: { area, confidence: "medium", escalate: false, language: lang } });
+      return NextResponse.json({
+        response: R[lang][area],
+        metadata: { area, confidence: "medium", escalate: false, language: lang },
+      });
     }
     if (area && R.en?.[area]) {
-      return NextResponse.json({ response: R.en[area], metadata: { area, confidence: "medium", escalate: false, language: lang } });
+      return NextResponse.json({
+        response: R.en[area],
+        metadata: { area, confidence: "medium", escalate: false, language: lang },
+      });
     }
 
-    // Step 3: Fallback
-    return NextResponse.json({ response: FALLBACK[lang] || FALLBACK.en, metadata: { area: null, confidence: "low", escalate: false, language: lang } });
+    // ── Step 4: Fallback ────────────────────────────────────────────
+    return NextResponse.json({
+      response: FALLBACK[lang] || FALLBACK.en,
+      metadata: { area: null, confidence: "low", escalate: false, language: lang },
+    });
 
   } catch (error) {
     console.error("Chat error:", error);
