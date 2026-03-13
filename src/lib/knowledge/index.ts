@@ -64,6 +64,7 @@ export function detectArea(message: string): LawArea | null {
 
 function matchQA(message: string, area: LawArea | null): QAEntry | null {
   const msg = message.toLowerCase();
+  const msgWords = msg.split(/\s+/);
   let bestMatch: QAEntry | null = null;
   let bestScore = 0;
 
@@ -73,10 +74,23 @@ function matchQA(message: string, area: LawArea | null): QAEntry | null {
       : module.qaBank;
 
     for (const entry of entries) {
-      const score = entry.triggerKeywords.filter((kw) =>
-        msg.includes(kw.toLowerCase())
-      ).length;
-
+      let score = 0;
+      for (const kw of entry.triggerKeywords) {
+        const kwLower = kw.toLowerCase();
+        if (msg.includes(kwLower)) {
+          // Exact phrase match — highest weight
+          score += 3;
+        } else {
+          // Word-level match
+          const kwWords = kwLower.split(/\s+/);
+          const wordMatches = kwWords.filter((w: string) => msgWords.includes(w)).length;
+          if (wordMatches === kwWords.length) {
+            score += 2;
+          } else {
+            score += wordMatches;
+          }
+        }
+      }
       if (score > bestScore) {
         bestScore = score;
         bestMatch = entry;
@@ -84,7 +98,8 @@ function matchQA(message: string, area: LawArea | null): QAEntry | null {
     }
   }
 
-  return bestScore > 0 ? bestMatch : null;
+  // Minimum score 2 to avoid false matches
+  return bestScore >= 2 ? bestMatch : null;
 }
 
 export function queryKnowledge(message: string): KnowledgeResult {
