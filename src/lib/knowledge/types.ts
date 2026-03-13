@@ -1,37 +1,17 @@
-// ─── JesAI Knowledge Store — Core Types ──────────────────────
-// NLC validates every entry before it goes live.
-
 export type Jurisdiction =
-  | "BD"
-  | "US"
-  | "UK"
-  | "Australia"
-  | "Canada"
-  | "India"
-  | "Germany"
-  | "China"
-  | "BD+US"
-  | "BD+UK"
-  | "BD+Australia"
-  | "BD+Canada"
-  | "BD+India"
-  | "MULTI";
+  | "BD" | "US" | "UK" | "Australia"
+  | "Canada" | "India" | "Germany"
+  | "China" | "BD+US" | "BD+UK"
+  | "BD+Australia" | "BD+Canada"
+  | "BD+India" | "MULTI";
 
 export type Certainty = "confirmed" | "arguable" | "verify-with-lawyer";
 
 export type LawArea =
-  | "constitutional"
-  | "criminal"
-  | "property"
-  | "family"
-  | "contract"
-  | "labour"
-  | "company"
-  | "tax"
-  | "nrb"
-  | "administrative"
-  | "evidence"
-  | "general";
+  | "constitutional" | "criminal" | "property"
+  | "family" | "contract" | "labour"
+  | "company" | "tax" | "nrb"
+  | "administrative" | "evidence" | "general";
 
 export interface LegalRule {
   id: string;
