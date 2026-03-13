@@ -39,7 +39,7 @@ export interface ScenarioResult {
   matched: true;
   scenario: Scenario;
   currentStep: ScenarioStep;
-  stepNumber: number;         // 1-indexed for display
+  stepNumber: number;         // "1"-indexed for display
   totalSteps: number;
   progressPercent: number;
   isComplete: boolean;
