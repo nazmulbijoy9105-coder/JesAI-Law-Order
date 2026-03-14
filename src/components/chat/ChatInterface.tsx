@@ -4,6 +4,10 @@ import { useState, useRef, useEffect, useCallback } from "react";
 
 type MessageRole = "user" | "ai";
 type Language = "en" | "bn";
+type LawArea =
+  | "property" | "criminal" | "family" | "labour"
+  | "company" | "tax" | "nrb" | "constitutional"
+  | "consumer" | "cyber" | null;
 
 interface Message {
   id: string;
@@ -15,6 +19,7 @@ interface Message {
     confidence?: "high" | "medium" | "low";
     escalate?: boolean;
     knowledgeMatched?: boolean;
+    paywallActive?: boolean;
   };
 }
 
@@ -26,14 +31,15 @@ interface Conversation {
   lawArea?: string;
 }
 
-const MAX_QUESTIONS = 10;
+// ── Single source of truth for free question limit ──
+const MAX_QUESTIONS = 20;
 
 const UI_TEXT = {
   en: {
     active: "Online",
     freeLeft: (n: number) => `${n} free`,
     quickTopics: "Where would you like to start?",
-    limitTitle: `You've reached your free limit`,
+    limitTitle: "You've reached your free limit",
     limitSub: "Subscribe for unlimited access with human legal assistance",
     subscribeBtn: "Subscribe Now",
     placeholder: "Describe your situation...",
@@ -73,27 +79,42 @@ const UI_TEXT = {
   },
 };
 
-const QUICK_TOPICS = {
+// Each topic has a display label AND an area key sent to the API
+const QUICK_TOPICS: Record<Language, { icon: string; label: string; area: LawArea }[]> = {
   en: [
-    { icon: "🏠", label: "Land & Property" },
-    { icon: "👨‍👩‍👧", label: "Family & Marriage" },
-    { icon: "🚔", label: "Police & Criminal" },
-    { icon: "💼", label: "Employment" },
-    { icon: "📝", label: "Contracts" },
-    { icon: "💰", label: "Tax & VAT" },
-    { icon: "🏢", label: "Company & RJSC" },
-    { icon: "✈️", label: "NRB Investment" },
+    { icon: "🏠", label: "Land & Property",   area: "property"       },
+    { icon: "👨‍👩‍👧", label: "Family & Marriage", area: "family"         },
+    { icon: "🚔", label: "Police & Criminal",  area: "criminal"       },
+    { icon: "💼", label: "Employment",         area: "labour"         },
+    { icon: "⚖️", label: "Constitutional",     area: "constitutional" },
+    { icon: "💰", label: "Tax & VAT",          area: "tax"            },
+    { icon: "🏢", label: "Company & RJSC",     area: "company"        },
+    { icon: "✈️", label: "NRB Investment",     area: "nrb"            },
   ],
   bn: [
-    { icon: "🏠", label: "জমি ও সম্পত্তি" },
-    { icon: "👨‍👩‍👧", label: "পরিবার ও বিবাহ" },
-    { icon: "🚔", label: "পুলিশ ও ফৌজদারি" },
-    { icon: "💼", label: "চাকরি" },
-    { icon: "📝", label: "চুক্তি" },
-    { icon: "💰", label: "কর ও ভ্যাট" },
-    { icon: "🏢", label: "কোম্পানি ও RJSC" },
-    { icon: "✈️", label: "প্রবাসী বিনিয়োগ" },
+    { icon: "🏠", label: "জমি ও সম্পত্তি",      area: "property"       },
+    { icon: "👨‍👩‍👧", label: "পরিবার ও বিবাহ",   area: "family"         },
+    { icon: "🚔", label: "পুলিশ ও ফৌজদারি",     area: "criminal"       },
+    { icon: "💼", label: "চাকরি",               area: "labour"         },
+    { icon: "⚖️", label: "সাংবিধানিক অধিকার",  area: "constitutional" },
+    { icon: "💰", label: "কর ও ভ্যাট",          area: "tax"            },
+    { icon: "🏢", label: "কোম্পানি ও RJSC",     area: "company"        },
+    { icon: "✈️", label: "প্রবাসী বিনিয়োগ",    area: "nrb"            },
   ],
+};
+
+// Area display names shown in chat header when locked
+const AREA_LABELS: Record<string, string> = {
+  property:       "Land & Property",
+  criminal:       "Criminal Law",
+  family:         "Family Law",
+  labour:         "Labour Law",
+  company:        "Company Law",
+  tax:            "Tax Law",
+  nrb:            "NRB Investment",
+  constitutional: "Constitutional Law",
+  consumer:       "Consumer Rights",
+  cyber:          "Cyber Law",
 };
 
 function formatMessage(content: string) {
@@ -112,6 +133,8 @@ function formatMessage(content: string) {
     if (/^\d+\./.test(line)) return <p key={i} className="pl-3 my-0.5 text-[13px] leading-relaxed">{line}</p>;
     if (line.startsWith("---")) return <hr key={i} className="border-white/10 my-3" />;
     if (line.startsWith("_") && line.endsWith("_")) return <p key={i} className="italic text-slate-400 my-0.5 text-[13px]">{line.replace(/_/g, "")}</p>;
+    if (line.startsWith("🔒")) return <p key={i} className="my-1 text-[13px] leading-relaxed text-[#c8a84b]">{line}</p>;
+    if (line.startsWith("⚠️") || line.startsWith("⚠")) return <p key={i} className="my-1 text-[13px] leading-relaxed text-[#f42a41]">{line}</p>;
     if (line.trim() === "") return <div key={i} className="h-2" />;
     return <p key={i} className="my-0.5 text-[13px] leading-relaxed">{line}</p>;
   });
@@ -138,6 +161,9 @@ export default function ChatInterface() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
+  // ── Subject lock: set when user taps a quick topic chip ──
+  const [selectedArea, setSelectedArea] = useState<LawArea>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -146,7 +172,6 @@ export default function ChatInterface() {
   const t = UI_TEXT[lang];
   const freeRemaining = Math.max(0, MAX_QUESTIONS - questionCount);
 
-  // Load Google Fonts
   useEffect(() => {
     const link = document.createElement("link");
     link.href = "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap";
@@ -158,7 +183,6 @@ export default function ChatInterface() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  // Init greeting
   useEffect(() => {
     startNewChat();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -178,6 +202,7 @@ export default function ChatInterface() {
     setInput("");
     setApiError(null);
     setSidebarOpen(false);
+    setSelectedArea(null); // reset subject lock on new chat
   }
 
   function saveCurrentConversation(msgs: Message[]) {
@@ -196,17 +221,36 @@ export default function ChatInterface() {
     setActiveConvId(conv.id);
     setQuestionCount(conv.messages.filter(m => m.role === "user").length);
     setSidebarOpen(false);
+    setSelectedArea(null);
   }
 
-  const callJesAI = useCallback(async (userMessage: string, currentMessages: Message[]) => {
+  const callJesAI = useCallback(async (
+    userMessage: string,
+    currentMessages: Message[],
+    areaOverride?: LawArea
+  ) => {
     setApiError(null);
     setIsTyping(true);
-    const history = currentMessages.filter(m => m.id !== "greeting-" + activeConvId).slice(-6).map(m => ({ role: m.role === "ai" ? "assistant" : "user", content: m.content }));
+
+    const history = currentMessages
+      .filter(m => m.id !== "greeting-" + activeConvId)
+      .slice(-6)
+      .map(m => ({ role: m.role === "ai" ? "assistant" : "user", content: m.content }));
+
+    // Use areaOverride (from chip click) or current selectedArea state
+    const areaToSend = areaOverride !== undefined ? areaOverride : selectedArea;
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMessage, history, language: lang }),
+        body: JSON.stringify({
+          message: userMessage,
+          history,
+          language: lang,
+          selectedArea: areaToSend,   // ← subject lock sent to API
+          isPaid: false,               // ← false until payment integration
+        }),
       });
       if (!res.ok) throw new Error(`${res.status}`);
       const data = await res.json();
@@ -215,7 +259,10 @@ export default function ChatInterface() {
         role: "ai",
         content: data.response,
         timestamp: new Date(),
-        metadata: data.metadata,
+        metadata: {
+          ...data.metadata,
+          knowledgeMatched: data.source === "knowledge" || data.source === "llm",
+        },
       };
       setMessages(prev => {
         const updated = [...prev, aiMsg];
@@ -236,16 +283,22 @@ export default function ChatInterface() {
       setIsTyping(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lang, activeConvId]);
+  }, [lang, activeConvId, selectedArea]);
 
-  const sendMessage = useCallback(async (text?: string) => {
+  const sendMessage = useCallback(async (text?: string, area?: LawArea) => {
     const messageText = text || input.trim();
     if (!messageText || isTyping || questionCount >= MAX_QUESTIONS) return;
+
+    // If a subject chip was clicked, lock the area before sending
+    if (area !== undefined) {
+      setSelectedArea(area);
+    }
+
     const userMsg: Message = { id: genId(), role: "user", content: messageText, timestamp: new Date() };
     const updated = [...messages, userMsg];
     setMessages(updated);
     setInput("");
-    await callJesAI(messageText, updated);
+    await callJesAI(messageText, updated, area);
   }, [input, isTyping, questionCount, messages, callJesAI]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -260,6 +313,7 @@ export default function ChatInterface() {
     r.lang = lang === "bn" ? "bn-BD" : "en-BD";
     r.continuous = false;
     r.interimResults = false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     r.onresult = (e: any) => { setInput(p => p + e.results[0][0].transcript); setIsListening(false); };
     r.onerror = () => setIsListening(false);
     r.onend = () => setIsListening(false);
@@ -273,7 +327,7 @@ export default function ChatInterface() {
   const speakMessage = useCallback((id: string, content: string) => {
     if (speakingId === id) { window.speechSynthesis.cancel(); setSpeakingId(null); return; }
     window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(content.replace(/\*\*/g, "").replace(/\*/g, "").replace(/---/g, ""));
+    const u = new SpeechSynthesisUtterance(content.replace(/\*\*/g, "").replace(/\*/g, "").replace(/---/g, "").replace(/🔒/g, "").replace(/⚠️/g, ""));
     u.lang = lang === "bn" ? "bn-BD" : "en-US";
     u.rate = 0.9;
     u.onend = () => setSpeakingId(null);
@@ -286,13 +340,14 @@ export default function ChatInterface() {
   const isToday = (d: Date) => new Date().toDateString() === d.toDateString();
   const isYesterday = (d: Date) => { const y = new Date(); y.setDate(y.getDate() - 1); return y.toDateString() === d.toDateString(); };
 
+  const hasUserMessages = messages.filter(m => m.role === "user").length > 0;
+
   return (
     <div style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }} className="flex h-full bg-[#080f1e] overflow-hidden">
 
       {/* ── Sidebar ───────────────────────────────────────── */}
       <aside className={`${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 fixed lg:relative z-40 w-64 h-full flex flex-col border-r border-white/[0.06] bg-[#0a1220] transition-transform duration-300 ease-out`}>
 
-        {/* Sidebar top */}
         <div className="p-4 border-b border-white/[0.06]">
           <div className="flex items-center gap-2 mb-4">
             <div className="h-7 w-7 rounded-lg bg-[#006a4e] flex items-center justify-center">
@@ -311,7 +366,6 @@ export default function ChatInterface() {
           </button>
         </div>
 
-        {/* Conversations */}
         <div className="flex-1 overflow-y-auto p-3">
           {conversations.length === 0 ? (
             <div className="text-center py-8">
@@ -338,7 +392,6 @@ export default function ChatInterface() {
           )}
         </div>
 
-        {/* Sidebar footer */}
         <div className="p-3 border-t border-white/[0.06]">
           <div className="px-2 py-1.5 rounded-xl bg-[#f42a41]/10 border border-[#f42a41]/20">
             <p className="text-[10px] text-[#f42a41] font-semibold">⚠ Legal information only</p>
@@ -347,7 +400,6 @@ export default function ChatInterface() {
         </div>
       </aside>
 
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <button onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-black/60 z-30 lg:hidden backdrop-blur-sm" />
       )}
@@ -371,6 +423,12 @@ export default function ChatInterface() {
               <div>
                 <h1 style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }} className="text-white font-semibold text-sm leading-none tracking-tight">
                   Jes<span className="text-[#c8a84b]">AI</span>
+                  {/* Show locked subject in header */}
+                  {selectedArea && (
+                    <span className="ml-2 text-[10px] font-normal text-[#4ade80] border border-[#006a4e]/40 bg-[#006a4e]/10 px-1.5 py-0.5 rounded-full">
+                      {AREA_LABELS[selectedArea]}
+                    </span>
+                  )}
                 </h1>
                 <p className="text-[10px] text-slate-500 mt-0.5 leading-none">{t.active} · Bangladesh Law</p>
               </div>
@@ -378,22 +436,33 @@ export default function ChatInterface() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* NLC Verified badge */}
             {messages.some(m => m.metadata?.knowledgeMatched) && (
               <span className="hidden sm:flex text-[10px] px-2 py-1 rounded-full bg-[#c8a84b]/10 text-[#c8a84b] border border-[#c8a84b]/20 items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#c8a84b] inline-block" />
                 NLC Verified
               </span>
             )}
+            {/* Change subject button — shown when area is locked */}
+            {selectedArea && hasUserMessages && (
+              <button
+                onClick={startNewChat}
+                className="text-[11px] px-2.5 py-1.5 rounded-lg border border-white/10 text-slate-500 hover:text-white hover:border-[#006a4e]/40 transition-all duration-200"
+                title="Change subject"
+              >
+                Change
+              </button>
+            )}
             <button onClick={toggleLang} className="text-[11px] px-2.5 py-1.5 rounded-lg border border-white/10 text-slate-400 hover:text-white hover:border-[#006a4e]/40 transition-all duration-200 font-medium">
               {t.langToggle}
             </button>
-            <div className={`text-[11px] px-2.5 py-1.5 rounded-lg font-medium tabular-nums ${freeRemaining <= 3 ? "bg-[#f42a41]/15 text-[#f42a41]" : "bg-[#006a4e]/15 text-[#4ade80]"}`}>
+            <div className={`text-[11px] px-2.5 py-1.5 rounded-lg font-medium tabular-nums ${freeRemaining <= 5 ? "bg-[#f42a41]/15 text-[#f42a41]" : "bg-[#006a4e]/15 text-[#4ade80]"}`}>
               {t.freeLeft(freeRemaining)}
             </div>
           </div>
         </header>
 
-        {/* Error */}
+        {/* Error banner */}
         {apiError && (
           <div className="mx-4 mt-2 px-3 py-2 rounded-xl bg-[#f42a41]/10 border border-[#f42a41]/20 text-[11px] text-[#f42a41] flex items-center gap-2 flex-shrink-0">
             <span>⚠</span>{apiError}
@@ -401,19 +470,18 @@ export default function ChatInterface() {
         )}
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-5 space-y-5">
+        <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-5 space-y-5">
           {messages.map((msg) => (
-            <div key={msg.id} className={`chat-bubble flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
+            <div key={msg.id} className={`chat-bubble flex gap-2 sm:gap-3 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
 
-              {/* Avatar */}
               <div className={`flex-shrink-0 h-7 w-7 rounded-xl flex items-center justify-center text-xs font-bold shadow-md ${msg.role === "ai" ? "bg-[#006a4e] text-white shadow-[#006a4e]/30" : "bg-[#c8a84b] text-[#0a1628] shadow-[#c8a84b]/20"}`}>
                 {msg.role === "ai" ? "J" : "U"}
               </div>
 
-              <div className={`max-w-[82%] space-y-1.5 ${msg.role === "user" ? "items-end" : "items-start"} flex flex-col`}>
-                <div className={`rounded-2xl px-4 py-3 text-slate-300 ${
+              <div className={`max-w-[85%] sm:max-w-[82%] space-y-1.5 ${msg.role === "user" ? "items-end" : "items-start"} flex flex-col`}>
+                <div className={`rounded-2xl px-3 sm:px-4 py-3 text-slate-300 ${
                   msg.role === "ai"
-                    ? "bg-[#0d1e35] border border-white/[0.07] rounded-tl-md shadow-xl shadow-black/20"
+                    ? "bg-[#0d1e35] border border-white/[0.07] rounded-tl-md shadow-xl shadow-black/20 w-full"
                     : "bg-[#006a4e] text-white rounded-tr-md shadow-lg shadow-[#006a4e]/25"
                 }`}>
                   {msg.role === "ai" ? (
@@ -438,13 +506,18 @@ export default function ChatInterface() {
                 {msg.metadata && (
                   <div className="flex flex-wrap gap-1.5 px-1">
                     {msg.metadata.area && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#006a4e]/10 text-[#4ade80] border border-[#006a4e]/20">{msg.metadata.area}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#006a4e]/10 text-[#4ade80] border border-[#006a4e]/20">
+                        {AREA_LABELS[msg.metadata.area] ?? msg.metadata.area}
+                      </span>
                     )}
                     {msg.metadata.knowledgeMatched && (
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#c8a84b]/10 text-[#c8a84b] border border-[#c8a84b]/20">NLC Verified</span>
                     )}
                     {msg.metadata.escalate && (
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#f42a41]/10 text-[#f42a41] border border-[#f42a41]/20">Consult Lawyer</span>
+                    )}
+                    {msg.metadata.paywallActive && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#c8a84b]/10 text-[#c8a84b] border border-[#c8a84b]/20">🔒 Paid content available</span>
                     )}
                   </div>
                 )}
@@ -468,14 +541,17 @@ export default function ChatInterface() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Quick topic chips */}
-        {messages.filter(m => m.role === "user").length === 0 && (
-          <div className="px-4 pb-3 flex-shrink-0">
+        {/* Quick topic chips — show on first load OR when no area selected yet */}
+        {(!hasUserMessages || (!selectedArea && !hasUserMessages)) && (
+          <div className="px-3 sm:px-4 pb-3 flex-shrink-0">
             <p className="text-[11px] text-slate-600 mb-2.5 font-medium">{t.quickTopics}</p>
             <div className="flex flex-wrap gap-2">
               {QUICK_TOPICS[lang].map((topic) => (
-                <button key={topic.label} onClick={() => sendMessage(topic.label)}
-                  className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] text-slate-400 hover:text-white hover:border-[#006a4e]/40 hover:bg-[#006a4e]/10 transition-all duration-200">
+                <button
+                  key={topic.label}
+                  onClick={() => sendMessage(topic.label, topic.area)}
+                  className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] text-slate-400 hover:text-white hover:border-[#006a4e]/40 hover:bg-[#006a4e]/10 transition-all duration-200"
+                >
                   <span>{topic.icon}</span>
                   <span>{topic.label}</span>
                 </button>
@@ -496,8 +572,8 @@ export default function ChatInterface() {
         )}
 
         {/* Input area */}
-        <div className="border-t border-white/[0.06] p-4 bg-[#080f1e] flex-shrink-0">
-          <div className="flex gap-2.5 items-end max-w-4xl mx-auto">
+        <div className="border-t border-white/[0.06] p-3 sm:p-4 bg-[#080f1e] flex-shrink-0">
+          <div className="flex gap-2 sm:gap-2.5 items-end max-w-4xl mx-auto">
             <div className="flex-1 relative">
               <textarea
                 ref={inputRef}
@@ -508,15 +584,17 @@ export default function ChatInterface() {
                 placeholder={questionCount >= MAX_QUESTIONS ? t.placeholderLimit : t.placeholder}
                 rows={2}
                 style={{ fontFamily: "'DM Sans', sans-serif" }}
-                className="w-full resize-none rounded-2xl border border-white/[0.08] bg-[#0d1e35] px-4 py-3 text-[13px] text-white placeholder-slate-600 focus:outline-none focus:border-[#006a4e]/50 focus:ring-1 focus:ring-[#006a4e]/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 leading-relaxed shadow-inner"
+                className="w-full resize-none rounded-2xl border border-white/[0.08] bg-[#0d1e35] px-3 sm:px-4 py-3 text-[13px] text-white placeholder-slate-600 focus:outline-none focus:border-[#006a4e]/50 focus:ring-1 focus:ring-[#006a4e]/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 leading-relaxed shadow-inner"
               />
             </div>
 
             {/* Voice */}
-            <button onClick={isListening ? stopListening : startListening}
+            <button
+              onClick={isListening ? stopListening : startListening}
               disabled={isTyping || questionCount >= MAX_QUESTIONS}
               title={isListening ? t.stopListenBtn : t.listenBtn}
-              className={`flex-shrink-0 h-11 w-11 rounded-2xl flex items-center justify-center transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed ${isListening ? "bg-[#f42a41] shadow-lg shadow-[#f42a41]/30 animate-pulse" : "bg-[#0d1e35] border border-white/[0.08] text-slate-500 hover:text-white hover:border-[#006a4e]/40"}`}>
+              className={`flex-shrink-0 h-11 w-11 rounded-2xl flex items-center justify-center transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed ${isListening ? "bg-[#f42a41] shadow-lg shadow-[#f42a41]/30 animate-pulse" : "bg-[#0d1e35] border border-white/[0.08] text-slate-500 hover:text-white hover:border-[#006a4e]/40"}`}
+            >
               {isListening ? (
                 <svg className="h-4 w-4 text-white" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
               ) : (
@@ -525,9 +603,11 @@ export default function ChatInterface() {
             </button>
 
             {/* Send */}
-            <button onClick={() => sendMessage()}
+            <button
+              onClick={() => sendMessage()}
               disabled={!input.trim() || isTyping || questionCount >= MAX_QUESTIONS}
-              className="flex-shrink-0 h-11 w-11 rounded-2xl bg-[#006a4e] flex items-center justify-center text-white hover:bg-[#005a40] transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed shadow-lg shadow-[#006a4e]/30 hover:shadow-[#006a4e]/50">
+              className="flex-shrink-0 h-11 w-11 rounded-2xl bg-[#006a4e] flex items-center justify-center text-white hover:bg-[#005a40] transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed shadow-lg shadow-[#006a4e]/30 hover:shadow-[#006a4e]/50"
+            >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
             </button>
           </div>

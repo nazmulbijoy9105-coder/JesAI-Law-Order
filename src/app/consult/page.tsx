@@ -13,8 +13,10 @@ export default function ConsultPage() {
       <Navbar />
 
       <div className="flex-1 flex flex-col lg:flex-row max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 gap-6">
-        {/* Sidebar */}
-        <aside className="lg:w-72 flex-shrink-0 space-y-4">
+
+        {/* ── Desktop Sidebar ─────────────────────────────── */}
+        <aside className="hidden lg:block lg:w-72 flex-shrink-0 space-y-4">
+
           {/* JesAI Info Card */}
           <div className="rounded-xl border border-[#006a4e]/30 bg-[#0d2240] p-5">
             <div className="flex items-center gap-3 mb-4">
@@ -23,36 +25,30 @@ export default function ConsultPage() {
               </div>
               <div>
                 <h2 className="text-white font-bold">JesAI</h2>
-                <p className="text-xs text-[#4ade80]">Mother Legal AI</p>
+                <p className="text-xs text-[#4ade80]">Bangladesh Legal AI</p>
               </div>
             </div>
+            {/* Fixed: removed IRAC and bdlaws false claim */}
             <p className="text-xs text-slate-400 leading-relaxed">
-              Trained on all Bangladesh laws from{" "}
-              <a
-                href="https://bdlaws.minlaw.gov.bd"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#4ade80] hover:underline"
-              >
-                bdlaws.minlaw.gov.bd
-              </a>
-              . JesAI uses IRAC reasoning to map your facts to the law.
+              NLC-validated legal knowledge covering Bangladesh law across all major
+              practice areas. Powered by{" "}
+              <span className="text-[#4ade80]">Neum Lex Counsel</span>.
             </p>
           </div>
 
-          {/* How JesAI Thinks */}
+          {/* How JesAI Thinks — IRAC removed */}
           <div className="rounded-xl border border-white/10 bg-[#0d2240] p-5">
             <h3 className="text-sm font-semibold text-white mb-3">
-              How JesAI Thinks
+              How JesAI Works
             </h3>
             <div className="space-y-3">
               {[
                 { icon: "👂", label: "Listens to your facts" },
-                { icon: "❓", label: "Asks clarifying questions" },
                 { icon: "🗺️", label: "Maps to Bangladesh laws" },
-                { icon: "⚖️", label: "Substantive + Procedural" },
+                { icon: "⚖️", label: "Explains your rights" },
+                { icon: "📋", label: "Step-by-step guidance" },
                 { icon: "🎯", label: "Predicts consequences" },
-                { icon: "📋", label: "Gives step-by-step guidance" },
+                { icon: "🔗", label: "Connects to NLC advocates" },
               ].map((item) => (
                 <div key={item.label} className="flex items-center gap-2">
                   <span className="text-base">{item.icon}</span>
@@ -62,30 +58,29 @@ export default function ConsultPage() {
             </div>
           </div>
 
-          {/* Law Areas Quick Access */}
+          {/* Law Areas — updated to match built modules */}
           <div className="rounded-xl border border-white/10 bg-[#0d2240] p-5">
             <h3 className="text-sm font-semibold text-white mb-3">
               Law Areas Covered
             </h3>
             <div className="space-y-1.5">
               {[
-                { icon: "⚖️", label: "Constitutional Law" },
-                { icon: "🔒", label: "Criminal Law" },
-                { icon: "🏠", label: "Property & Land" },
-                { icon: "👨‍👩‍👧", label: "Family Law" },
-                { icon: "📝", label: "Contract Law" },
-                { icon: "🏭", label: "Labour Law" },
-                { icon: "💼", label: "Company Law" },
-                { icon: "💰", label: "Tax Law" },
-                { icon: "🏛️", label: "Administrative Law" },
-                { icon: "📜", label: "Evidence Law" },
+                { icon: "⚖️", label: "Constitutional Law",  built: true  },
+                { icon: "🔒", label: "Criminal Law",         built: true  },
+                { icon: "🏠", label: "Property & Land",      built: true  },
+                { icon: "👨‍👩‍👧", label: "Family Law",          built: false },
+                { icon: "🏭", label: "Labour Law",           built: false },
+                { icon: "💼", label: "Company Law",          built: true  },
+                { icon: "💰", label: "Tax Law",              built: true  },
+                { icon: "✈️", label: "NRB Investment",       built: true  },
               ].map((area) => (
                 <div
                   key={area.label}
-                  className="flex items-center gap-2 text-xs text-slate-400 py-1"
+                  className="flex items-center gap-2 text-xs py-1"
                 >
                   <span>{area.icon}</span>
-                  <span>{area.label}</span>
+                  <span className={area.built ? "text-slate-300" : "text-slate-500"}>{area.label}</span>
+                  {!area.built && <span className="ml-auto text-[10px] text-slate-600">soon</span>}
                 </div>
               ))}
             </div>
@@ -105,14 +100,15 @@ export default function ConsultPage() {
           </div>
         </aside>
 
-        {/* Chat Area */}
+        {/* ── Chat Area ───────────────────────────────────── */}
         <main className="flex-1 rounded-xl border border-white/10 bg-[#0a1628] overflow-hidden flex flex-col min-h-[600px] lg:min-h-0">
           <div className="border-b border-white/10 px-4 py-3 bg-[#0d2240]/50">
             <h1 className="text-sm font-semibold text-white">
               JesAI Legal Consultation
             </h1>
+            {/* Fixed: 20 free consistent with ChatInterface MAX_QUESTIONS */}
             <p className="text-xs text-slate-400">
-              Free legal literacy • Bangladesh law • 20 questions free
+              Free legal literacy · Bangladesh law · 20 questions free
             </p>
           </div>
           <div className="flex-1 overflow-hidden flex flex-col">

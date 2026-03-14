@@ -6,58 +6,58 @@ const lawAreas = [
   {
     icon: "⚖️",
     title: "Constitutional Law",
-    desc: "Fundamental rights, separation of powers, judicial review under Bangladesh Constitution 1972.",
+    desc: "Fundamental rights, writ jurisdiction, all 17 amendments, arrest safeguards under Bangladesh Constitution 1972.",
     color: "from-green-900/40 to-green-800/20",
     border: "border-green-700/30",
   },
   {
     icon: "🔒",
     title: "Criminal Law",
-    desc: "Penal Code, CrPC, offenses, FIR, bail, trial procedures and special criminal laws.",
+    desc: "Penal Code, CrPC, FIR, bail, remand, trial procedures and special criminal laws.",
     color: "from-red-900/40 to-red-800/20",
     border: "border-red-700/30",
   },
   {
     icon: "🏠",
     title: "Property & Land Law",
-    desc: "Transfer of Property Act, land registration, mutation, easements, leases and disputes.",
+    desc: "Transfer of Property Act, land mutation, khatian, namajaari, deed registration and disputes.",
     color: "from-amber-900/40 to-amber-800/20",
     border: "border-amber-700/30",
   },
   {
     icon: "👨‍👩‍👧",
     title: "Family Law",
-    desc: "Marriage, divorce, dower, maintenance, custody, inheritance under Muslim, Hindu & Christian laws.",
+    desc: "Marriage, divorce, talaq, mehr, maintenance, custody under Muslim, Hindu & Christian laws.",
     color: "from-purple-900/40 to-purple-800/20",
     border: "border-purple-700/30",
   },
   {
-    icon: "📝",
-    title: "Contract Law",
-    desc: "Contract formation, breach, remedies, specific performance and commercial agreements.",
-    color: "from-blue-900/40 to-blue-800/20",
-    border: "border-blue-700/30",
-  },
-  {
     icon: "🏭",
     title: "Labour Law",
-    desc: "Employment rights, termination, compensation, labour court procedures and trade unions.",
+    desc: "Employment rights, wrongful termination, gratuity, provident fund and Labour Act 2006.",
     color: "from-teal-900/40 to-teal-800/20",
     border: "border-teal-700/30",
   },
   {
     icon: "💼",
     title: "Company & Commercial",
-    desc: "Companies Act, corporate governance, securities, business registration and compliance.",
+    desc: "Companies Act 1994, RJSC registration, MOA/AOA, directors, annual compliance.",
     color: "from-indigo-900/40 to-indigo-800/20",
     border: "border-indigo-700/30",
   },
   {
     icon: "💰",
     title: "Tax Law",
-    desc: "Income Tax Ordinance, VAT, customs duties, NBR regulations and tax compliance.",
+    desc: "Income Tax Act 2023, VAT, NBR regulations, TIN, tax returns and compliance.",
     color: "from-yellow-900/40 to-yellow-800/20",
     border: "border-yellow-700/30",
+  },
+  {
+    icon: "✈️",
+    title: "NRB Investment",
+    desc: "WHT, BIDA registration, repatriation, FBAR, cross-border investment compliance.",
+    color: "from-blue-900/40 to-blue-800/20",
+    border: "border-blue-700/30",
   },
 ];
 
@@ -65,25 +65,25 @@ const howItWorks = [
   {
     step: "01",
     title: "Share Your Situation",
-    desc: "Tell JesAI your facts and concerns in plain language — no legal jargon needed.",
+    desc: "Describe your facts in plain language — no legal jargon needed.",
     icon: "💬",
   },
   {
     step: "02",
-    title: "AI Asks Clarifying Questions",
-    desc: "JesAI identifies core issues and asks targeted questions to fully understand your situation.",
+    title: "JesAI Analyses Your Facts",
+    desc: "JesAI identifies the relevant legal issues and maps them to Bangladesh law.",
     icon: "🔍",
   },
   {
     step: "03",
-    title: "Law Mapping",
-    desc: "JesAI maps your facts to relevant Bangladesh laws — substantive rights and procedural steps.",
+    title: "Law Explained Clearly",
+    desc: "Get a plain-language explanation of your rights, duties, and procedural options.",
     icon: "🗺️",
   },
   {
     step: "04",
-    title: "Consequence Prediction",
-    desc: "Understand positive, negative, and neutral outcomes before you act.",
+    title: "Step-by-Step Guidance",
+    desc: "Understand what to do next — from filing an FIR to registering a company.",
     icon: "🎯",
   },
 ];
@@ -95,35 +95,30 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">
-        {/* Background decoration */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-[#006a4e]/10 blur-3xl" />
           <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-[#c8a84b]/10 blur-3xl" />
-          {/* Bangladesh flag colors subtle stripe */}
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#006a4e] via-[#f42a41] to-[#006a4e]" />
         </div>
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-20 pb-24">
           <div className="text-center max-w-4xl mx-auto">
-            {/* Badge */}
             <div className="inline-flex items-center gap-2 rounded-full border border-[#006a4e]/40 bg-[#006a4e]/10 px-4 py-1.5 text-sm text-[#4ade80] mb-8">
               <span className="h-2 w-2 rounded-full bg-[#4ade80] animate-pulse" />
               Free Legal Literacy for Every Bangladeshi
             </div>
 
-            {/* Headline */}
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
               Your Legal Rights,{" "}
               <span className="gradient-text">Explained Simply</span>
             </h1>
 
             <p className="text-lg sm:text-xl text-slate-400 leading-relaxed mb-10 max-w-2xl mx-auto">
-              JesAI is Bangladesh&apos;s Mother Legal AI — mapping your situation to
-              the right laws, predicting consequences, and guiding you through
-              every step. From birth to death, land to sky.
+              JesAI is Bangladesh&apos;s Legal AI — mapping your situation to the
+              right laws, explaining your rights, and guiding you step by step.
+              From land disputes to criminal matters, company registration to family law.
             </p>
 
-            {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
               <Link
                 href="/consult"
@@ -142,7 +137,7 @@ export default function Home() {
               </Link>
             </div>
 
-            {/* Free tier badge */}
+            {/* Free tier badge — consistent with MAX_QUESTIONS=20 */}
             <div className="inline-flex items-center gap-3 rounded-xl border border-[#c8a84b]/30 bg-[#c8a84b]/10 px-6 py-3">
               <span className="text-2xl">🎁</span>
               <div className="text-left">
@@ -158,20 +153,18 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Stats Bar */}
+      {/* Stats Bar — fixed false claims */}
       <section className="border-y border-white/10 bg-[#0d2240]/50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             {[
-              { value: "1000+", label: "Bangladesh Laws Covered" },
-              { value: "8+", label: "Legal Domains" },
-              { value: "Free", label: "Legal Literacy" },
-              { value: "24/7", label: "Always Available" },
+              { value: "225+",  label: "Validated Q&A Pairs"   },
+              { value: "8",     label: "Law Modules Live"       },
+              { value: "Free",  label: "Legal Literacy"         },
+              { value: "24/7",  label: "Always Available"       },
             ].map((stat) => (
               <div key={stat.label}>
-                <div className="text-2xl font-bold text-[#c8a84b]">
-                  {stat.value}
-                </div>
+                <div className="text-2xl font-bold text-[#c8a84b]">{stat.value}</div>
                 <div className="text-sm text-slate-400 mt-1">{stat.label}</div>
               </div>
             ))}
@@ -179,24 +172,17 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Law Areas Grid */}
+      {/* Law Areas Grid — Contract Law removed */}
       <section className="py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-white mb-4">
               All Areas of Bangladesh Law
             </h2>
+            {/* Fixed: no false bdlaws claim */}
             <p className="text-slate-400 max-w-2xl mx-auto">
-              From constitutional rights to daily transactions — JesAI covers
-              every domain of Bangladesh law based on{" "}
-              <a
-                href="https://bdlaws.minlaw.gov.bd"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#4ade80] hover:underline"
-              >
-                bdlaws.minlaw.gov.bd
-              </a>
+              NLC-validated legal knowledge covering every major area of
+              Bangladesh law — substantive rights and procedural guidance.
             </p>
           </div>
 
@@ -223,16 +209,17 @@ export default function Home() {
         </div>
       </section>
 
-      {/* How It Works */}
+      {/* How It Works — IRAC removed */}
       <section className="py-20 bg-[#0d2240]/30">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-white mb-4">
               How JesAI Works
             </h2>
+            {/* Fixed: IRAC removed */}
             <p className="text-slate-400 max-w-xl mx-auto">
-              JesAI thinks like a para-lawyer — using IRAC reasoning to map
-              your facts to the law and predict consequences.
+              Describe your situation in plain language. JesAI maps it to the
+              relevant Bangladesh laws and guides you through your options.
             </p>
           </div>
 
@@ -260,7 +247,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Substantive vs Procedural */}
+      {/* Two Pillars */}
       <section className="py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -268,7 +255,7 @@ export default function Home() {
               Two Pillars of Law
             </h2>
             <p className="text-slate-400 max-w-xl mx-auto">
-              JesAI understands both dimensions of Bangladesh law to give you
+              JesAI covers both dimensions of Bangladesh law to give you
               complete guidance.
             </p>
           </div>
@@ -276,13 +263,11 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             <div className="rounded-2xl border border-[#006a4e]/30 bg-gradient-to-br from-[#006a4e]/20 to-[#006a4e]/5 p-8">
               <div className="text-4xl mb-4">📜</div>
-              <h3 className="text-xl font-bold text-white mb-3">
-                Substantive Law
-              </h3>
+              <h3 className="text-xl font-bold text-white mb-3">Substantive Law</h3>
               <p className="text-slate-400 text-sm leading-relaxed mb-4">
                 Defines your <strong className="text-white">rights, duties, and offenses</strong>.
-                Reflects what the law says about your situation — what you can
-                do, what you cannot, and what consequences follow.
+                What the law says about your situation — what you can do, what you cannot,
+                and what consequences follow.
               </p>
               <ul className="space-y-2">
                 {[
@@ -301,9 +286,7 @@ export default function Home() {
 
             <div className="rounded-2xl border border-[#c8a84b]/30 bg-gradient-to-br from-[#c8a84b]/20 to-[#c8a84b]/5 p-8">
               <div className="text-4xl mb-4">⚙️</div>
-              <h3 className="text-xl font-bold text-white mb-3">
-                Procedural Law
-              </h3>
+              <h3 className="text-xl font-bold text-white mb-3">Procedural Law</h3>
               <p className="text-slate-400 text-sm leading-relaxed mb-4">
                 Guides <strong className="text-white">how to enforce</strong> your rights.
                 The steps, forms, courts, and timelines that lawyers, courts,
@@ -351,8 +334,7 @@ export default function Home() {
             </h2>
             <p className="text-slate-400 mb-8 leading-relaxed">
               Every Bangladeshi citizen deserves to understand the laws that
-              govern their life. Start with 20 free questions — no registration
-              required.
+              govern their life. Start with 20 free questions — no registration required.
             </p>
             <Link
               href="/consult"
