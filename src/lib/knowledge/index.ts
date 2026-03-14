@@ -75,15 +75,23 @@ export function detectArea(message: string): LawArea | null {
 }
 
 // ─── Q&A Matching ─────────────────────────────────────────────
-function matchQA(message: string, area: LawArea | null): QAEntry | null {
+function matchQA(
+  message: string,
+  area: LawArea | null,
+  lockedArea: LawArea | null = null
+): QAEntry | null {
   const msg = message.toLowerCase();
   const msgWords = msg.split(/\s+/);
   let bestMatch: QAEntry | null = null;
   let bestScore = 0;
 
+  const effectiveArea = lockedArea ?? area;
+
   for (const module of MODULES) {
-    const entries = area
-      ? module.qaBank.filter((e) => e.area === area || e.area === "general")
+    if (lockedArea && module.area !== lockedArea) continue;
+
+    const entries = effectiveArea
+      ? module.qaBank.filter((e) => e.area === effectiveArea)
       : module.qaBank;
 
     for (const entry of entries) {
@@ -110,14 +118,19 @@ function matchQA(message: string, area: LawArea | null): QAEntry | null {
 }
 
 // ─── Main Query Function ──────────────────────────────────────
-export function queryKnowledge(message: string): KnowledgeResult {
-  const area = detectArea(message);
-  const qaEntry = matchQA(message, area);
+export function queryKnowledge(
+  message: string,
+  lockedArea: LawArea | null = null
+): KnowledgeResult {
+  const area = lockedArea ?? detectArea(message);
+  const qaEntry = matchQA(message, area, lockedArea);
 
   const rules = area
     ? MODULES.flatMap((m) =>
         m.rules.filter(
-          (r) => r.area === area || r.tags.some((t) => message.toLowerCase().includes(t))
+          (r) =>
+            r.area === area &&
+            (lockedArea ? true : r.tags.some((t) => message.toLowerCase().includes(t)))
         )
       ).slice(0, 5)
     : [];
